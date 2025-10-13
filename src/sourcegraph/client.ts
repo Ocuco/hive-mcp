@@ -39,7 +39,7 @@ export class SourcegraphClient {
   async searchCode(searchQuery: SourcegraphSearchQuery): Promise<SourcegraphSearchResult> {
     const query = `
       query Search($query: String!) {
-        search(query: $query, version: V3, patternType: regexp) {
+        search(query: $query) {
           results {
             results {
               __typename

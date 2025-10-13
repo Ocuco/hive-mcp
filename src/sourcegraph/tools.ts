@@ -9,13 +9,13 @@ const sourcegraphClient = new SourcegraphClient();
 
 export const sourcegraphSearchCodeTool: Tool = {
   name: 'sourcegraph_search_code',
-  description: 'Search code across repositories using Sourcegraph. Supports various search operators like repo:, file:, lang:, etc.',
+  description: 'Search code across repositories using Sourcegraph. Supports various search operators like repo:, file:, lang:, count:, patterntype:, etc.',
   inputSchema: {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'The search query. Can include operators like "repo:owner/name", "file:path", "lang:python", etc. Example: "function handleRequest repo:myorg/myrepo"',
+        description: 'The search query. Can include operators like "repo:owner/name", "file:path", "lang:python", "count:50", "patterntype:literal" (default), "patterntype:regexp", or "patterntype:structural". Examples: "payment count:50", "function handleRequest repo:myorg/myrepo", "func.*Handler patterntype:regexp"',
       },
     },
     required: ['query'],
