@@ -1,0 +1,52 @@
+{
+  "name": "hive-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Jira and Sourcegraph integrations with LLMs",
+  "main": "dist/index.js",
+  "bin": {
+    "hive-mcp": "dist/index.js"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "jira",
+    "sourcegraph",
+    "model-context-protocol",
+    "llm",
+    "ai",
+    "claude"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/hive-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/hive-mcp/issues"
+  },
+  "homepage": "https://github.com/yourusername/hive-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "graphql-request": "^6.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  }
+}
+
