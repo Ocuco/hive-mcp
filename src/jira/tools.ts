@@ -1,7 +1,29 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { JiraClient } from './client.js';
+import { readJiraResource } from './resources.js';
 
 const jiraClient = new JiraClient();
+
+/**
+ * Default fields to fetch for Jira issues to keep response size manageable
+ * These cover the most commonly needed information without bloating the response
+ */
+export const DEFAULT_JIRA_FIELDS = [
+  'summary',
+  'description',
+  'status',
+  'priority',
+  'assignee',
+  'reporter',
+  'created',
+  'updated',
+  'issuetype',
+  'labels',
+  'components',
+  'fixVersions',
+  'resolution',
+  'resolutiondate',
+];
 
 /**
  * Jira MCP Tools
@@ -9,13 +31,20 @@ const jiraClient = new JiraClient();
 
 export const jiraGetIssueTool: Tool = {
   name: 'jira_get_issue',
-  description: 'Get detailed information about a Jira issue by its key or ID (e.g., PROJ-123)',
+  description: 'Get detailed information about a Jira issue by its key or ID (e.g., PROJ-123). Use the fields parameter to control response size and avoid token limits.',
   inputSchema: {
     type: 'object',
     properties: {
       issueIdOrKey: {
         type: 'string',
         description: 'The issue key (e.g., PROJ-123) or ID',
+      },
+      fields: {
+        type: 'array',
+        items: {
+          type: 'string',
+        },
+        description: 'Optional array of field names to fetch. If not specified, returns a default set of common fields. Use ["*all"] to fetch all fields (may exceed token limits). Common fields: summary, description, status, priority, assignee, reporter, created, updated, issuetype, labels, components, attachment',
       },
     },
     required: ['issueIdOrKey'],
@@ -24,8 +53,23 @@ export const jiraGetIssueTool: Tool = {
 
 export async function handleJiraGetIssue(args: any) {
   try {
-    const { issueIdOrKey } = args;
-    const issue = await jiraClient.getIssue(issueIdOrKey);
+    const { issueIdOrKey, fields } = args;
+
+    // Determine which fields to fetch
+    let fieldsToFetch: string[] | undefined;
+    if (fields) {
+      // If user explicitly specified "*all", don't pass fields parameter (fetch everything)
+      if (fields.length === 1 && fields[0] === '*all') {
+        fieldsToFetch = undefined;
+      } else {
+        fieldsToFetch = fields;
+      }
+    } else {
+      // Use default fields if not specified
+      fieldsToFetch = DEFAULT_JIRA_FIELDS;
+    }
+
+    const issue = await jiraClient.getIssue(issueIdOrKey, fieldsToFetch);
 
     return {
       content: [
@@ -158,11 +202,125 @@ export async function handleJiraAddComment(args: any) {
   }
 }
 
+export const jiraListAttachmentsTool: Tool = {
+  name: 'jira_list_attachments',
+  description: 'List all attachments for a Jira issue. Returns attachment metadata including IDs, filenames, sizes, and mime types.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      issueKey: {
+        type: 'string',
+        description: 'The issue key (e.g., PROJ-123)',
+      },
+    },
+    required: ['issueKey'],
+  },
+};
+
+export async function handleJiraListAttachments(args: any) {
+  try {
+    const { issueKey } = args;
+    const result = await readJiraResource(`jira://issues/${issueKey}/attachments`);
+
+    // Convert resource response to tool response format
+    const toolContent = result.contents.map(item => {
+      if (item.text) {
+        return {
+          type: 'text' as const,
+          text: item.text,
+        };
+      } else if (item.blob) {
+        return {
+          type: 'image' as const,
+          data: item.blob,
+          mimeType: item.mimeType,
+        };
+      }
+      return {
+        type: 'text' as const,
+        text: 'Unknown content type',
+      };
+    });
+
+    return {
+      content: toolContent,
+    };
+  } catch (error: any) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: ${error.message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
+}
+
+export const jiraReadAttachmentTool: Tool = {
+  name: 'jira_read_attachment',
+  description: 'Read a specific Jira attachment by ID. Returns the attachment content (images as blob, other files as base64). Files larger than 500KB will return metadata only.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      attachmentId: {
+        type: 'string',
+        description: 'The attachment ID (e.g., 10041)',
+      },
+    },
+    required: ['attachmentId'],
+  },
+};
+
+export async function handleJiraReadAttachment(args: any) {
+  try {
+    const { attachmentId } = args;
+    const result = await readJiraResource(`jira://attachments/${attachmentId}`);
+
+    // Convert resource response to tool response format
+    const toolContent = result.contents.map(item => {
+      if (item.text) {
+        return {
+          type: 'text' as const,
+          text: item.text,
+        };
+      } else if (item.blob) {
+        return {
+          type: 'image' as const,
+          data: item.blob,
+          mimeType: item.mimeType,
+        };
+      }
+      return {
+        type: 'text' as const,
+        text: 'Unknown content type',
+      };
+    });
+
+    return {
+      content: toolContent,
+    };
+  } catch (error: any) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: ${error.message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
+}
+
 // Export all Jira tools
 export const jiraTools = [
   jiraGetIssueTool,
   jiraGetCommentsTool,
   jiraAddCommentTool,
+  jiraListAttachmentsTool,
+  jiraReadAttachmentTool,
 ];
 
 // Export all Jira handlers
@@ -170,5 +328,7 @@ export const jiraHandlers = {
   'jira_get_issue': handleJiraGetIssue,
   'jira_get_comments': handleJiraGetComments,
   'jira_add_comment': handleJiraAddComment,
+  'jira_list_attachments': handleJiraListAttachments,
+  'jira_read_attachment': handleJiraReadAttachment,
 };
 

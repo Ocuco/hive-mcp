@@ -26,10 +26,20 @@ export class JiraClient {
 
   /**
    * Get issue details by issue key or ID
+   * @param issueIdOrKey - The issue key (e.g., PROJ-123) or ID
+   * @param fields - Optional array of field names to fetch. If not specified, fetches all fields.
    */
-  async getIssue(issueIdOrKey: string): Promise<JiraIssue> {
+  async getIssue(issueIdOrKey: string, fields?: string[]): Promise<JiraIssue> {
     try {
-      const response = await this.client.get<JiraIssue>(`/issue/${issueIdOrKey}`);
+      // Build query parameters
+      const params: Record<string, string> = {};
+      if (fields && fields.length > 0) {
+        params.fields = fields.join(',');
+      }
+
+      const response = await this.client.get<JiraIssue>(`/issue/${issueIdOrKey}`, {
+        params,
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(
