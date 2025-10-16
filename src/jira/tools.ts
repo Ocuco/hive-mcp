@@ -6,11 +6,15 @@ const jiraClient = new JiraClient();
 
 /**
  * Default fields to fetch for Jira issues to keep response size manageable
- * These cover the most commonly needed information without bloating the response
+ * These cover the most essential information without bloating the response
+ * Intentionally excludes:
+ * - description (can be very large, request explicitly if needed)
+ * - comment (use jira_get_comments tool instead)
+ * - attachment (use jira_list_attachments tool instead)
+ * - Large optional fields (labels, components, etc. - request explicitly if needed)
  */
 export const DEFAULT_JIRA_FIELDS = [
   'summary',
-  'description',
   'status',
   'priority',
   'assignee',
@@ -18,11 +22,6 @@ export const DEFAULT_JIRA_FIELDS = [
   'created',
   'updated',
   'issuetype',
-  'labels',
-  'components',
-  'fixVersions',
-  'resolution',
-  'resolutiondate',
 ];
 
 /**
@@ -31,7 +30,7 @@ export const DEFAULT_JIRA_FIELDS = [
 
 export const jiraGetIssueTool: Tool = {
   name: 'jira_get_issue',
-  description: 'Get detailed information about a Jira issue by its key or ID (e.g., PROJ-123). Use the fields parameter to control response size and avoid token limits.',
+  description: 'Get detailed information about a Jira issue by its key or ID (e.g., PROJ-123). IMPORTANT: Use the fields parameter to control response size and avoid token limits. Default fields provide essential info (summary, status, priority, assignee, reporter, created, updated, issuetype) without bloating response.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -44,7 +43,7 @@ export const jiraGetIssueTool: Tool = {
         items: {
           type: 'string',
         },
-        description: 'Optional array of field names to fetch. If not specified, returns a default set of common fields. Use ["*all"] to fetch all fields (may exceed token limits). Common fields: summary, description, status, priority, assignee, reporter, created, updated, issuetype, labels, components, attachment',
+        description: 'Optional array of specific field names to fetch. Omit this parameter to use default minimal fields (recommended: summary, status, priority, assignee, reporter, created, updated, issuetype). Only specify fields if you need additional information. For comments use jira_get_comments tool, for attachments use jira_list_attachments tool. Common fields: description, labels, components, fixVersions, resolution, resolutiondate, duedate, environment, customfield_*',
       },
     },
     required: ['issueIdOrKey'],
@@ -55,19 +54,8 @@ export async function handleJiraGetIssue(args: any) {
   try {
     const { issueIdOrKey, fields } = args;
 
-    // Determine which fields to fetch
-    let fieldsToFetch: string[] | undefined;
-    if (fields) {
-      // If user explicitly specified "*all", don't pass fields parameter (fetch everything)
-      if (fields.length === 1 && fields[0] === '*all') {
-        fieldsToFetch = undefined;
-      } else {
-        fieldsToFetch = fields;
-      }
-    } else {
-      // Use default fields if not specified
-      fieldsToFetch = DEFAULT_JIRA_FIELDS;
-    }
+    // Use provided fields or default to minimal field set
+    const fieldsToFetch = fields && fields.length > 0 ? fields : DEFAULT_JIRA_FIELDS;
 
     const issue = await jiraClient.getIssue(issueIdOrKey, fieldsToFetch);
 
