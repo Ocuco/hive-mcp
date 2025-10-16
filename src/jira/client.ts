@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '../config.js';
-import { JiraIssue, JiraAttachment, JiraComment, JiraCommentInput } from './types.js';
+import { JiraIssue, JiraAttachment, JiraComment, JiraCommentInput, JiraCommentsResponse } from './types.js';
 
 export class JiraClient {
   private client: AxiosInstance;
@@ -91,15 +91,31 @@ export class JiraClient {
   }
 
   /**
-   * Get all comments for an issue
+   * Get comments for an issue with pagination support
+   * @param issueIdOrKey - The issue key (e.g., PROJ-123) or ID
+   * @param startAt - The index of the first result to return (default: 0)
+   * @param maxResults - The maximum number of comments to return (default: 5, max: 100)
    */
-  async getComments(issueIdOrKey: string): Promise<JiraComment[]> {
+  async getComments(
+    issueIdOrKey: string,
+    startAt: number = 0,
+    maxResults: number = 5
+  ): Promise<JiraCommentsResponse> {
     try {
-      const response = await this.client.get<{ comments: JiraComment[] }>(
-        `/issue/${issueIdOrKey}/comment`
+      // Ensure maxResults doesn't exceed Jira's limit
+      const limitedMaxResults = Math.min(maxResults, 100);
+
+      const response = await this.client.get<JiraCommentsResponse>(
+        `/issue/${issueIdOrKey}/comment`,
+        {
+          params: {
+            startAt,
+            maxResults: limitedMaxResults,
+          },
+        }
       );
 
-      return response.data.comments;
+      return response.data;
     } catch (error: any) {
       throw new Error(
         `Failed to get comments: ${error.response?.data?.errorMessages?.[0] || error.message}`

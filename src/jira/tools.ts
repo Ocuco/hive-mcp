@@ -97,13 +97,21 @@ export async function handleJiraGetIssue(args: any) {
 
 export const jiraGetCommentsTool: Tool = {
   name: 'jira_get_comments',
-  description: 'Get all comments from a Jira issue. Returns comment history with authors, timestamps, and content.',
+  description: 'Get comments from a Jira issue with pagination support. Returns comment history with authors, timestamps, and content. Use pagination parameters to control response size and avoid token limits.',
   inputSchema: {
     type: 'object',
     properties: {
       issueIdOrKey: {
         type: 'string',
         description: 'The issue key (e.g., PROJ-123) or ID',
+      },
+      startAt: {
+        type: 'number',
+        description: 'The index of the first comment to return (0-indexed). Default: 0',
+      },
+      maxResults: {
+        type: 'number',
+        description: 'Maximum number of comments to return per request (max: 100). Default: 5',
       },
     },
     required: ['issueIdOrKey'],
@@ -112,11 +120,11 @@ export const jiraGetCommentsTool: Tool = {
 
 export async function handleJiraGetComments(args: any) {
   try {
-    const { issueIdOrKey } = args;
-    const comments = await jiraClient.getComments(issueIdOrKey);
+    const { issueIdOrKey, startAt = 0, maxResults = 5 } = args;
+    const response = await jiraClient.getComments(issueIdOrKey, startAt, maxResults);
 
     // Format comments for better readability
-    const formattedComments = comments.map(comment => ({
+    const formattedComments = response.comments.map(comment => ({
       id: comment.id,
       author: {
         name: comment.author.displayName,
@@ -127,13 +135,27 @@ export async function handleJiraGetComments(args: any) {
       body: comment.body, // Atlassian Document Format
     }));
 
+    // Calculate if there are more comments to fetch
+    const hasMore = !response.isLast && (response.startAt + response.maxResults < response.total);
+    const nextStartAt = hasMore ? response.startAt + response.maxResults : null;
+
     return {
       content: [
         {
           type: 'text',
           text: JSON.stringify({
             issueKey: issueIdOrKey,
-            totalComments: comments.length,
+            pagination: {
+              startAt: response.startAt,
+              maxResults: response.maxResults,
+              total: response.total,
+              returned: response.comments.length,
+              hasMore,
+              ...(nextStartAt !== null && {
+                nextStartAt,
+                nextPageHint: `To get the next page, call with: startAt=${nextStartAt}, maxResults=${maxResults}`
+              }),
+            },
             comments: formattedComments,
           }, null, 2),
         },

@@ -71,6 +71,17 @@ export interface JiraCommentInput {
 }
 
 /**
+ * Pagination response structure from Jira API
+ */
+export interface JiraCommentsResponse {
+  startAt: number;
+  maxResults: number;
+  total: number;
+  isLast?: boolean;
+  comments: JiraComment[];
+}
+
+/**
  * MCP Resource types for Jira
  */
 export interface CachedAttachment {
