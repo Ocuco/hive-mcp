@@ -23,17 +23,45 @@ A Model Context Protocol (MCP) server that provides integrations for Jira and So
 - Node.js 18 or higher
 - Jira Cloud instance with API access
 - Sourcegraph instance with API access
+- GitHub account with access to the @ocuco organization
 
-### Install from NPM (coming soon)
+### Install from GitHub Packages
+
+This package is published as a private package on GitHub Packages. To install it, you need to authenticate with GitHub first.
+
+#### 1. Create a GitHub Personal Access Token (PAT)
+
+1. Go to [GitHub Settings > Developer Settings > Personal Access Tokens > Tokens (classic)](https://github.com/settings/tokens)
+2. Click "Generate new token" > "Generate new token (classic)"
+3. Give it a descriptive name (e.g., "NPM Package Access")
+4. Select the following scopes:
+   - `read:packages` - Download packages from GitHub Package Registry
+   - `write:packages` - Upload packages to GitHub Package Registry (only needed for publishing)
+5. Click "Generate token" and copy the token
+
+#### 2. Configure NPM to use GitHub Packages
+
+Create or edit your `~/.npmrc` file (in your home directory) and add:
+
+```
+@ocuco:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
+```
+
+Replace `YOUR_GITHUB_TOKEN` with the token you created in step 1.
+
+**Note:** On Windows, your home directory is `%USERPROFILE%` (usually `C:\Users\YourUsername`)
+
+#### 3. Install the package
 
 ```bash
-npm install -g hive-mcp
+npm install -g @ocuco/hive-mcp
 ```
 
 ### Install from Source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ocuco/hive-mcp.git
 cd hive-mcp
 npm install
 npm run build
@@ -93,7 +121,7 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-Or if installed globally:
+Or if installed globally from GitHub Packages:
 
 ```json
 {
@@ -111,6 +139,8 @@ Or if installed globally:
   }
 }
 ```
+
+**Note:** After installing from GitHub Packages with `npm install -g @ocuco/hive-mcp`, the command name remains `hive-mcp` (defined in package.json bin field).
 
 ## Available Tools & Resources
 
@@ -265,6 +295,53 @@ npm run dev
 # Run the server
 npm start
 ```
+
+## Publishing to GitHub Packages
+
+**Note:** Only maintainers with write access to the @ocuco organization can publish.
+
+### Prerequisites for Publishing
+
+1. Create a GitHub Personal Access Token with `write:packages` scope (see Installation section)
+2. Ensure your local `~/.npmrc` has the authentication configured
+3. Make sure you're logged in to npm: `npm whoami --registry=https://npm.pkg.github.com`
+
+### Publishing Steps
+
+1. **Update version** (choose one):
+   ```bash
+   npm version patch  # 1.0.0 -> 1.0.1
+   npm version minor  # 1.0.0 -> 1.1.0
+   npm version major  # 1.0.0 -> 2.0.0
+   ```
+
+2. **Build the project**:
+   ```bash
+   npm run build
+   ```
+
+3. **Publish to GitHub Packages**:
+   ```bash
+   npm publish
+   ```
+
+4. **Push changes and tags**:
+   ```bash
+   git push
+   git push --tags
+   ```
+
+### Package Visibility
+
+The package is set as **private** (`"access": "restricted"` in publishConfig). Only members of the @ocuco organization with proper permissions can:
+- View the package
+- Download and install the package
+- Publish new versions (with write access)
+
+To manage package access:
+1. Go to the [package page on GitHub](https://github.com/orgs/ocuco/packages)
+2. Find the `hive-mcp` package
+3. Go to "Package settings" > "Manage Actions access" to configure permissions
 
 ## Architecture
 
