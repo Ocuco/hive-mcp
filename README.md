@@ -21,7 +21,7 @@ A Model Context Protocol (MCP) server that provides integrations for Jira and So
 
 ### Prerequisites
 - Node.js 18 or higher
-- Jira Cloud instance with API access
+- Jira Server/Data Center instance with API access
 - Sourcegraph instance with API access
 - GitHub account with access to the @ocuco organization
 
@@ -73,10 +73,9 @@ npm link
 Create a `.env` file in your project root or set environment variables:
 
 ```bash
-# Jira Configuration
-JIRA_BASE_URL=https://your-domain.atlassian.net
-JIRA_EMAIL=your-email@example.com
-JIRA_API_TOKEN=your_jira_api_token
+# Jira Configuration (On-Premise Server/Data Center)
+JIRA_BASE_URL=https://jira.your-company.com
+JIRA_API_TOKEN=your_personal_access_token
 
 # Sourcegraph Configuration
 SOURCEGRAPH_URL=https://sourcegraph.company.com
@@ -85,10 +84,23 @@ SOURCEGRAPH_TOKEN=your_sourcegraph_token
 
 ### Getting API Credentials
 
-#### Jira API Token
-1. Go to https://id.atlassian.com/manage-profile/security/api-tokens
-2. Click "Create API token"
-3. Copy the token and use it as `JIRA_API_TOKEN`
+#### Jira Personal Access Token (PAT)
+For Jira Server/Data Center on-premise installations:
+
+1. Log in to your Jira instance
+2. Navigate to your **Profile** → **Personal Access Tokens**
+3. Click **Create token**
+4. Give it a name (e.g., "MCP Server Access")
+5. Set expiration date (optional, recommended for security)
+6. Click **Create** and copy the token
+7. Use this token as `JIRA_API_TOKEN`
+
+**Important Notes:**
+- Personal Access Tokens are available in Jira 8.14 and later
+- For older versions, contact your Jira administrator for API access options
+- Keep your token secure and never commit it to version control
+- The token is used with Bearer authentication
+- Self-signed SSL certificates are automatically handled
 
 #### Sourcegraph Token
 1. Go to your Sourcegraph instance
@@ -110,9 +122,8 @@ Add to your Claude Desktop configuration file:
       "command": "node",
       "args": ["/path/to/hive-mcp/dist/index.js"],
       "env": {
-        "JIRA_BASE_URL": "https://your-domain.atlassian.net",
-        "JIRA_EMAIL": "your-email@example.com",
-        "JIRA_API_TOKEN": "your_jira_api_token",
+        "JIRA_BASE_URL": "https://jira.your-company.com",
+        "JIRA_API_TOKEN": "your_personal_access_token",
         "SOURCEGRAPH_URL": "https://sourcegraph.company.com",
         "SOURCEGRAPH_TOKEN": "your_sourcegraph_token"
       }
@@ -129,9 +140,8 @@ Or if installed globally from GitHub Packages:
     "hive-mcp": {
       "command": "hive-mcp",
       "env": {
-        "JIRA_BASE_URL": "https://your-domain.atlassian.net",
-        "JIRA_EMAIL": "your-email@example.com",
-        "JIRA_API_TOKEN": "your_jira_api_token",
+        "JIRA_BASE_URL": "https://jira.your-company.com",
+        "JIRA_API_TOKEN": "your_personal_access_token",
         "SOURCEGRAPH_URL": "https://sourcegraph.company.com",
         "SOURCEGRAPH_TOKEN": "your_sourcegraph_token"
       }

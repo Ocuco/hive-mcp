@@ -7,7 +7,6 @@ dotenv.config();
 // Zod schema for environment validation
 const envSchema = z.object({
   JIRA_BASE_URL: z.string().url(),
-  JIRA_EMAIL: z.string().email(),
   JIRA_API_TOKEN: z.string().min(1),
   SOURCEGRAPH_URL: z.string().url(),
   SOURCEGRAPH_TOKEN: z.string().min(1),

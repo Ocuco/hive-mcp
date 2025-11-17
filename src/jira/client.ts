@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import https from 'https';
 import { config } from '../config.js';
 import { JiraIssue, JiraAttachment, JiraComment, JiraCommentInput, JiraCommentsResponse } from './types.js';
 
@@ -8,19 +9,20 @@ export class JiraClient {
 
   constructor() {
     this.baseURL = config.JIRA_BASE_URL;
-    
-    // Create Basic Auth token
-    const authToken = Buffer.from(
-      `${config.JIRA_EMAIL}:${config.JIRA_API_TOKEN}`
-    ).toString('base64');
+
+    // Create HTTPS agent for self-signed certificate support
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false, // Allow self-signed certificates
+    });
 
     this.client = axios.create({
-      baseURL: `${this.baseURL}/rest/api/3`,
+      baseURL: `${this.baseURL}/rest/api/2`,
       headers: {
-        'Authorization': `Basic ${authToken}`,
+        'Authorization': `Bearer ${config.JIRA_API_TOKEN}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
+      httpsAgent,
     });
   }
 
@@ -65,15 +67,17 @@ export class JiraClient {
       const metadata = metadataResponse.data;
 
       // Download the actual file content
-      const authToken = Buffer.from(
-        `${config.JIRA_EMAIL}:${config.JIRA_API_TOKEN}`
-      ).toString('base64');
+      // Create HTTPS agent for self-signed certificate support
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: false,
+      });
 
       const contentResponse = await axios.get(metadata.content, {
         headers: {
-          'Authorization': `Basic ${authToken}`,
+          'Authorization': `Bearer ${config.JIRA_API_TOKEN}`,
         },
         responseType: 'arraybuffer',
+        httpsAgent,
       });
 
       const contentBase64 = Buffer.from(contentResponse.data).toString('base64');
