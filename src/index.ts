@@ -8,18 +8,46 @@ import {
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
+  Tool,
+  Resource,
+  ResourceTemplate,
 } from '@modelcontextprotocol/sdk/types.js';
 
-// Import tools and handlers
-import { jiraTools, jiraHandlers } from './jira/tools.js';
-import { sourcegraphTools, sourcegraphHandlers } from './sourcegraph/tools.js';
+import { config } from './config.js';
+import { Integration } from './types.js';
 
-// Import resources
-import { 
-  jiraResourceTemplates, 
-  listJiraResources, 
-  readJiraResource 
-} from './jira/resources.js';
+// Aggregated state from all enabled integrations
+const allTools: Tool[] = [];
+const allHandlers: Record<string, (args: any) => Promise<any>> = {};
+const allResourceTemplates: ResourceTemplate[] = [];
+const resourceListers: (() => Promise<Resource[]>)[] = [];
+const resourceReaders: ((uri: string) => Promise<any>)[] = [];
+
+async function loadIntegrations() {
+  const names = config.enabledIntegrations.map(i => i.name);
+  console.error(`📦 Enabled services: ${names.join(', ')}`);
+
+  for (const integration of config.enabledIntegrations) {
+    // Validate and init with parsed config
+    const envConfig = integration.configSchema.parse(process.env);
+    await integration.init(envConfig);
+
+    allTools.push(...integration.tools);
+    Object.assign(allHandlers, integration.handlers);
+
+    if (integration.resourceTemplates) {
+      allResourceTemplates.push(...integration.resourceTemplates);
+    }
+    if (integration.listResources) {
+      resourceListers.push(integration.listResources);
+    }
+    if (integration.readResource) {
+      resourceReaders.push(integration.readResource);
+    }
+
+    console.error(`  ✅ ${integration.name} loaded`);
+  }
+}
 
 // Create MCP server
 const server = new Server(
@@ -35,35 +63,19 @@ const server = new Server(
   }
 );
 
-// Combine all tools and handlers
-const allTools = [...jiraTools, ...sourcegraphTools];
-const allHandlers = {
-  ...jiraHandlers,
-  ...sourcegraphHandlers,
-};
-
 // Register list_tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: allTools,
-  };
+  return { tools: allTools };
 });
 
 // Register call_tool handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-
-  // Find and execute the appropriate handler
-  const handler = allHandlers[name as keyof typeof allHandlers];
+  const handler = allHandlers[name];
 
   if (!handler) {
     return {
-      content: [
-        {
-          type: 'text',
-          text: `Unknown tool: ${name}`,
-        },
-      ],
+      content: [{ type: 'text', text: `Unknown tool: ${name}` }],
       isError: true,
     };
   }
@@ -73,37 +85,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Register resource handlers
 server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
-  return {
-    resourceTemplates: jiraResourceTemplates,
-  };
+  return { resourceTemplates: allResourceTemplates };
 });
 
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  const resources = await listJiraResources();
-  return {
-    resources,
-  };
+  const results = await Promise.all(resourceListers.map(fn => fn()));
+  return { resources: results.flat() };
 });
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  try {
-    return await readJiraResource(uri);
-  } catch (error: any) {
-    throw new Error(`Failed to read resource ${uri}: ${error.message}`);
+  for (const reader of resourceReaders) {
+    try {
+      return await reader(uri);
+    } catch {
+      // This reader doesn't handle this URI, try the next one
+    }
   }
+
+  throw new Error(`No resource handler available for ${uri}`);
 });
 
 // Start the server
 async function main() {
   console.error('🚀 Hive MCP Server starting...');
-  
+
   try {
+    await loadIntegrations();
+
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error('✅ Hive MCP Server running on stdio');
-    console.error('📋 Available tools:');
+    console.error(`📋 Available tools (${allTools.length}):`);
     allTools.forEach(tool => {
       console.error(`   - ${tool.name}`);
     });
@@ -114,4 +128,3 @@ async function main() {
 }
 
 main();
-

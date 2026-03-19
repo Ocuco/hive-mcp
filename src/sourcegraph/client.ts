@@ -1,8 +1,11 @@
 import { GraphQLClient } from 'graphql-request';
 import axios, { AxiosInstance } from 'axios';
-import { config } from '../config.js';
-import { 
-  SourcegraphSearchResult, 
+export interface SourcegraphConfig {
+  SOURCEGRAPH_URL: string;
+  SOURCEGRAPH_TOKEN: string;
+}
+import {
+  SourcegraphSearchResult,
   SourcegraphSearchQuery,
   DeepSearchConversation
 } from './types.js';
@@ -11,21 +14,21 @@ export class SourcegraphClient {
   private graphqlClient: GraphQLClient;
   private restClient: AxiosInstance;
 
-  constructor() {
+  constructor(sgConfig: SourcegraphConfig) {
     // GraphQL client for code search
-    const graphqlEndpoint = `${config.SOURCEGRAPH_URL}/.api/graphql`;
+    const graphqlEndpoint = `${sgConfig.SOURCEGRAPH_URL}/.api/graphql`;
     this.graphqlClient = new GraphQLClient(graphqlEndpoint, {
       headers: {
-        'Authorization': `token ${config.SOURCEGRAPH_TOKEN}`,
+        'Authorization': `token ${sgConfig.SOURCEGRAPH_TOKEN}`,
         'Content-Type': 'application/json',
       },
     });
 
     // REST client for Deep Search API
     this.restClient = axios.create({
-      baseURL: config.SOURCEGRAPH_URL,
+      baseURL: sgConfig.SOURCEGRAPH_URL,
       headers: {
-        'Authorization': `token ${config.SOURCEGRAPH_TOKEN}`,
+        'Authorization': `token ${sgConfig.SOURCEGRAPH_TOKEN}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'X-Requested-With': 'hive-mcp 1.0.0',

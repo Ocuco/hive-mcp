@@ -2,7 +2,11 @@ import { Resource, ResourceTemplate } from '@modelcontextprotocol/sdk/types.js';
 import { JiraClient } from './client.js';
 import { CachedAttachment } from './types.js';
 
-const jiraClient = new JiraClient();
+let jiraClient: JiraClient;
+
+export function initJiraResources(client: JiraClient) {
+  jiraClient = client;
+}
 
 // In-memory cache for attachments
 const attachmentCache = new Map<string, CachedAttachment>();

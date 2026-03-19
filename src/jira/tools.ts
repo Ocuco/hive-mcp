@@ -2,7 +2,11 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { JiraClient } from './client.js';
 import { readJiraResource } from './resources.js';
 
-const jiraClient = new JiraClient();
+let jiraClient: JiraClient;
+
+export function setJiraClient(client: JiraClient) {
+  jiraClient = client;
+}
 
 /**
  * Default fields to fetch for Jira issues to keep response size manageable
@@ -233,7 +237,7 @@ export async function handleJiraListAttachments(args: any) {
     const result = await readJiraResource(`jira://issues/${issueKey}/attachments`);
 
     // Convert resource response to tool response format
-    const toolContent = result.contents.map(item => {
+    const toolContent = result.contents.map((item: any) => {
       if (item.text) {
         return {
           type: 'text' as const,
@@ -289,7 +293,7 @@ export async function handleJiraReadAttachment(args: any) {
     const result = await readJiraResource(`jira://attachments/${attachmentId}`);
 
     // Convert resource response to tool response format
-    const toolContent = result.contents.map(item => {
+    const toolContent = result.contents.map((item: any) => {
       if (item.text) {
         return {
           type: 'text' as const,

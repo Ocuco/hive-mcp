@@ -1,7 +1,11 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { SourcegraphClient } from './client.js';
 
-const sourcegraphClient = new SourcegraphClient();
+let sourcegraphClient: SourcegraphClient;
+
+export function setSourcegraphClient(client: SourcegraphClient) {
+  sourcegraphClient = client;
+}
 
 /**
  * Sourcegraph MCP Tools

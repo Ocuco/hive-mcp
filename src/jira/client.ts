@@ -1,14 +1,19 @@
 import axios, { AxiosInstance } from 'axios';
 import https from 'https';
-import { config } from '../config.js';
+export interface JiraConfig {
+  JIRA_BASE_URL: string;
+  JIRA_API_TOKEN: string;
+}
 import { JiraIssue, JiraAttachment, JiraComment, JiraCommentInput, JiraCommentsResponse } from './types.js';
 
 export class JiraClient {
   private client: AxiosInstance;
   private baseURL: string;
+  private apiToken: string;
 
-  constructor() {
-    this.baseURL = config.JIRA_BASE_URL;
+  constructor(jiraConfig: JiraConfig) {
+    this.baseURL = jiraConfig.JIRA_BASE_URL;
+    this.apiToken = jiraConfig.JIRA_API_TOKEN;
 
     // Create HTTPS agent for self-signed certificate support
     const httpsAgent = new https.Agent({
@@ -18,7 +23,7 @@ export class JiraClient {
     this.client = axios.create({
       baseURL: `${this.baseURL}/rest/api/2`,
       headers: {
-        'Authorization': `Bearer ${config.JIRA_API_TOKEN}`,
+        'Authorization': `Bearer ${this.apiToken}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
@@ -74,7 +79,7 @@ export class JiraClient {
 
       const contentResponse = await axios.get(metadata.content, {
         headers: {
-          'Authorization': `Bearer ${config.JIRA_API_TOKEN}`,
+          'Authorization': `Bearer ${this.apiToken}`,
         },
         responseType: 'arraybuffer',
         httpsAgent,
